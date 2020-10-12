@@ -25,6 +25,7 @@
 // Override of public `readonly` properties as private `readwrite`
 @property (nonatomic, strong, readwrite) UIImage *currentFrame;
 @property (nonatomic, assign, readwrite) NSUInteger currentFrameIndex;
+@property (nonatomic, assign, readwrite) NSUInteger currentFrameIndexTMP;
 
 @property (nonatomic, assign) NSUInteger loopCountdown;
 @property (nonatomic, assign) NSTimeInterval accumulator;
@@ -124,6 +125,7 @@
         
         self.currentFrame = animatedImage.posterImage;
         self.currentFrameIndex = 0;
+        self.currentFrameIndexTMP = 0;
         if (animatedImage.loopCount > 0) {
             self.loopCountdown = animatedImage.loopCount;
         } else {
@@ -400,19 +402,11 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
             // While-loop first inspired by & good Karma to: https://github.com/ondalabs/OLImageView/blob/master/OLImageView.m
             while (self.accumulator >= delayTime) {
                 self.accumulator -= delayTime;
-                self.currentFrameIndex++;
-                if (self.currentFrameIndex >= self.animatedImage.frameCount) {
-                    // If we've looped the number of times that this animated image describes, stop looping.
-                    self.loopCountdown--;
-                    if (self.loopCompletionBlock) {
-                        self.loopCompletionBlock(self.loopCountdown);
-                    }
-                    
-                    if (self.loopCountdown == 0) {
-                        [self stopAnimating];
-                        return;
-                    }
-                    self.currentFrameIndex = 0;
+                self.currentFrameIndexTMP++;
+                if (((int)(self.currentFrameIndexTMP / self.animatedImage.frameCount) % 2) == 0) {
+                    self.currentFrameIndex++;
+                } else {
+                    self.currentFrameIndex--;
                 }
                 // Calling `-setNeedsDisplay` will just paint the current frame, not the new frame that we may have moved to.
                 // Instead, set `needsDisplayWhenImageBecomesAvailable` to `YES` -- this will paint the new image once loaded.
@@ -427,7 +421,12 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 #endif
         }
     } else {
-        self.currentFrameIndex++;
+        self.currentFrameIndexTMP++;
+        if (((int)(self.currentFrameIndexTMP / self.animatedImage.frameCount) % 2) == 0) {
+            self.currentFrameIndex++;
+        } else {
+            self.currentFrameIndex--;
+        }
     }
 }
 
